@@ -844,6 +844,18 @@ where
     }
 }
 
+// Types for the proc-macro illustrate in the second commented test-case roughly looks as follows:
+//
+// trait Vertex {
+//     fn layout(input_rate) -> VertexLayout;
+// }
+//
+// struct VertexLayout {
+//    // Info about members stride etc..
+// }
+//
+// impl VertexInput for VertexLayout { ... }
+
 #[cfg(test)]
 mod tests {
     use super::{VertexInput, VertexInputState};
@@ -885,7 +897,6 @@ mod tests {
     // fn derive_vertex() {
     //     #[repr(C)]
     //     #[derive(..., Vertex)]
-    //     #[input_rate(VERTEX)]
     //     struct MyVertex {
     //         #[format(R16G16B16_SNORM)]
     //         normal: [i32; 3],
@@ -893,6 +904,6 @@ mod tests {
     //         #[format(R32G32B32_SFLOAT)]
     //         proj: [f32; 16],
     //     }
-    //     let output = [MyVertex::layout()].specialize(&inputs).unwrap();
+    //     let output = [MyVertex::layout(input_rate)].specialize(&inputs).unwrap();
     // }
 }
