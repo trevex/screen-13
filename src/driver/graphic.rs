@@ -788,20 +788,20 @@ pub struct VertexInputState {
     pub vertex_attribute_descriptions: Vec<vk::VertexInputAttributeDescription>,
 }
 
-pub trait VertexInput {
+pub trait VertexLayout {
     fn specialize(&self, inputs: &[Variable]) -> Result<VertexInputState, DriverError>;
 }
 
-impl VertexInput for VertexInputState {
+impl VertexLayout for VertexInputState {
     #[inline]
     fn specialize(&self, _inputs: &[Variable]) -> Result<VertexInputState, DriverError> {
         Ok(self.clone())
     }
 }
 
-impl<T> VertexInput for &[T]
+impl<T> VertexLayout for &[T]
 where
-    T: VertexInput,
+    T: VertexLayout,
 {
     #[inline]
     fn specialize(&self, inputs: &[Variable]) -> Result<VertexInputState, DriverError> {
@@ -812,7 +812,7 @@ where
         }
         Ok(VertexInputState {
             vertex_binding_descriptions: states
-                .clone() // TODO: avoid this clone?
+                .clone() // TODO: avoid this clone, maybe unzip?
                 .into_iter()
                 .flat_map(|state| state.vertex_binding_descriptions)
                 .collect(),
@@ -824,9 +824,9 @@ where
     }
 }
 
-impl<T, const N: usize> VertexInput for [T; N]
+impl<T, const N: usize> VertexLayout for [T; N]
 where
-    T: VertexInput,
+    T: VertexLayout,
 {
     #[inline]
     fn specialize(&self, inputs: &[Variable]) -> Result<VertexInputState, DriverError> {
@@ -834,9 +834,9 @@ where
     }
 }
 
-impl<T> VertexInput for Vec<T>
+impl<T> VertexLayout for Vec<T>
 where
-    T: VertexInput,
+    T: VertexLayout,
 {
     #[inline]
     fn specialize(&self, inputs: &[Variable]) -> Result<VertexInputState, DriverError> {
@@ -847,18 +847,18 @@ where
 // Types for the proc-macro illustrate in the second commented test-case roughly looks as follows:
 //
 // trait Vertex {
-//     fn layout(input_rate) -> VertexLayout;
+//     fn layout(input_rate) -> DerivedVertexLayout;
 // }
 //
-// struct VertexLayout {
+// struct DerivedVertexLayout {
 //    // Info about members stride etc..
 // }
 //
-// impl VertexInput for VertexLayout { ... }
+// impl VertexInput for DerivedVertexLayout { ... }
 
 #[cfg(test)]
 mod tests {
-    use super::{VertexInput, VertexInputState};
+    use super::{VertexInputState, VertexLayout};
     use ash::vk;
     use spirq::{ty::Type, InterfaceLocation, Variable};
 
