@@ -33,6 +33,7 @@ pub mod graphic;
 pub mod image;
 pub mod ray_trace;
 pub mod shader;
+pub mod vertex;
 
 mod cmd_buf;
 mod descriptor_set;
@@ -71,8 +72,9 @@ pub(crate) use self::{
 use {
     self::{
         buffer::{Buffer, BufferInfo},
-        graphic::{DepthStencilMode, GraphicPipeline, VertexInputState},
+        graphic::{DepthStencilMode, GraphicPipeline},
         image::{Image, ImageInfo, ImageType, SampleCount},
+        vertex::VertexInputState,
     },
     ash::vk,
     derive_builder::{Builder, UninitializedFieldError},
