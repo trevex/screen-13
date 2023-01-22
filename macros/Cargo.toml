@@ -1,0 +1,22 @@
+[package]
+name = "screen-13-macros"
+version = "0.1.0"
+authors = ["John Wells <john@attackgoat.com>"]
+edition = "2021"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/attackgoat/screen-13"
+homepage = "https://github.com/attackgoat/screen-13"
+documentation = "https://docs.rs/screen-13"
+description = "Macros used by Screen 13."
+publish = false
+
+[lib]
+path = "lib.rs"
+proc-macro = true
+
+[dependencies]
+syn = "1.0"
+quote = "1.0"
+proc-macro2 = "1.0"
+proc-macro-crate = "1.2"
+

@@ -1,5 +1,6 @@
 //! Vertex layout types
 
+pub use screen_13_macros::Vertex;
 use {super::DriverError, ash::vk, spirq::Variable, std::collections::HashMap};
 
 /// The state of the vertex input stage of the graphics pipeline.
@@ -82,7 +83,7 @@ pub struct DerivedVertexLayout {
 pub struct DerivedVertexAttribute {
     pub offset: u32,
     pub format: vk::Format,
-    pub num_elements: u32,
+    pub num_locations: u32,
 }
 
 impl VertexLayout for DerivedVertexLayout {
@@ -94,7 +95,7 @@ impl VertexLayout for DerivedVertexLayout {
 
 #[cfg(test)]
 mod tests {
-    use super::{VertexInputState, VertexLayout};
+    use super::{Vertex, VertexInputState, VertexLayout};
     use ash::vk;
     use spirq::{ty::Type, InterfaceLocation, Variable};
 
@@ -129,17 +130,18 @@ mod tests {
         assert_eq!(output.vertex_attribute_descriptions.len(), 2);
     }
 
-    // #[test]
-    // fn derive_vertex() {
-    //     #[repr(C)]
-    //     #[derive(..., Vertex)]
-    //     struct MyVertex {
-    //         #[format(R16G16B16_SNORM)]
-    //         normal: [i32; 3],
-    //         #[name("in_proj", "cam_proj")]
-    //         #[format(R32G32B32_SFLOAT)]
-    //         proj: [f32; 16],
-    //     }
-    //     let output = [MyVertex::layout(input_rate)].specialize(&inputs).unwrap();
-    // }
+    #[test]
+    fn derive_vertex() {
+        #[repr(C)]
+        #[derive(Vertex)]
+        struct MyVertex {
+            #[format(R16G16B16_SNORM)]
+            normal: [i32; 3],
+            #[name("in_proj", "cam_proj")]
+            #[format(R32G32B32A32_SFLOAT, 4)]
+            proj: [f32; 16],
+        }
+        let output = MyVertex::layout(vk::VertexInputRate::VERTEX);
+        assert_eq!(output.attributes.len(), 3);
+    }
 }
