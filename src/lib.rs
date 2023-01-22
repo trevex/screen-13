@@ -341,6 +341,7 @@ pub mod prelude {
                     RayTraceShaderGroup, RayTraceShaderGroupType,
                 },
                 shader::{Shader, ShaderBuilder, ShaderCode, SpecializationInfo},
+                vertex::Vertex,
                 AccessType, Device, Driver, DriverConfig, DriverConfigBuilder, DriverError,
                 FeatureFlags, PhysicalDevice, PhysicalDeviceAccelerationStructureProperties,
                 PhysicalDeviceDescriptorIndexingFeatures, PhysicalDeviceRayTracePipelineProperties,
