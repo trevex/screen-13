@@ -31,11 +31,24 @@ where
 {
     #[inline]
     fn specialize(&self, inputs: &[Variable]) -> Result<VertexInputState, DriverError> {
-        // TODO: check for collisions! Update binding references!
         let mut states = Vec::with_capacity(self.len());
+        // When merging states, we need to keep track of current bindings
+        let mut curr_binding = 0;
+
         for vertex in self.iter() {
-            states.push(vertex.specialize(inputs)?);
+            let mut state = vertex.specialize(inputs)?;
+
+            for binding in state.vertex_binding_descriptions.iter_mut() {
+                binding.binding += curr_binding;
+            }
+            for attribute in state.vertex_attribute_descriptions.iter_mut() {
+                attribute.binding += curr_binding;
+            }
+
+            curr_binding += state.vertex_binding_descriptions.len() as u32;
+            states.push(state);
         }
+
         Ok(VertexInputState {
             vertex_binding_descriptions: states
                 .clone() // TODO: avoid this clone, maybe unzip?
@@ -82,14 +95,47 @@ pub struct DerivedVertexLayout {
 
 pub struct DerivedVertexAttribute {
     pub offset: u32,
+    pub offset_inc: u32,
     pub format: vk::Format,
     pub num_locations: u32,
 }
 
 impl VertexLayout for DerivedVertexLayout {
     #[inline]
-    fn specialize(&self, _inputs: &[Variable]) -> Result<VertexInputState, DriverError> {
-        unimplemented!()
+    fn specialize(&self, inputs: &[Variable]) -> Result<VertexInputState, DriverError> {
+        let bindings = vec![vk::VertexInputBindingDescription {
+            binding: 0,
+            stride: self.stride,
+            input_rate: self.input_rate,
+        }];
+        let attributes = inputs
+            .iter()
+            .filter_map(|var| match var {
+                Variable::Input {
+                    name,
+                    location,
+                    ty: _,
+                } => self
+                    .attributes
+                    .get(&name.to_owned().unwrap_or("".to_string()))
+                    .map(|attribute| {
+                        (location.loc()..location.loc() + attribute.num_locations)
+                            .enumerate()
+                            .map(|(i, location)| vk::VertexInputAttributeDescription {
+                                binding: 0,
+                                location,
+                                format: attribute.format,
+                                offset: attribute.offset + i as u32 * attribute.offset_inc,
+                            })
+                    }),
+                _ => None,
+            })
+            .flatten()
+            .collect();
+        Ok(VertexInputState {
+            vertex_binding_descriptions: bindings,
+            vertex_attribute_descriptions: attributes,
+        })
     }
 }
 
@@ -120,14 +166,13 @@ mod tests {
             ty: Type::Scalar(spirq::ty::ScalarType::Float(1)),
         }];
         let output = [state.clone(), state].specialize(&inputs).unwrap();
-        // Usage in GraphicPipelineInfo would look something like `VertexInput`:
-        // ```
-        //     VertexLayout::Explicit([state.clone(), state]),
-        // ```
-        // GraphicPipeline create will require some validation logic to make sure layout makes at
-        // least sense...
         assert_eq!(output.vertex_binding_descriptions.len(), 2);
         assert_eq!(output.vertex_attribute_descriptions.len(), 2);
+        // Let's check if bindings were incremented correctly
+        assert_eq!(output.vertex_binding_descriptions[0].binding, 0);
+        assert_eq!(output.vertex_binding_descriptions[1].binding, 1);
+        assert_eq!(output.vertex_attribute_descriptions[0].binding, 0);
+        assert_eq!(output.vertex_attribute_descriptions[1].binding, 1);
     }
 
     #[test]
@@ -141,7 +186,23 @@ mod tests {
             #[format(R32G32B32A32_SFLOAT, 4)]
             proj: [f32; 16],
         }
-        let output = MyVertex::layout(vk::VertexInputRate::VERTEX);
-        assert_eq!(output.attributes.len(), 3);
+        let layout = MyVertex::layout(vk::VertexInputRate::VERTEX);
+        assert_eq!(layout.attributes.len(), 3);
+        let inputs = [Variable::Input {
+            name: Some("in_proj".to_string()),
+            location: InterfaceLocation::new(0, 0),
+            ty: Type::Scalar(spirq::ty::ScalarType::Float(1)), // unused in impl
+        }];
+        let state = layout.specialize(&inputs).unwrap();
+        let bindings = &state.vertex_binding_descriptions;
+        let attributes = &state.vertex_attribute_descriptions;
+        assert_eq!(bindings.len(), 1);
+        assert_eq!(attributes.len(), 4);
+        // Let's check if the offset for the multiple locations for the array was incremented
+        // correctly:
+        assert_eq!(attributes[0].offset, 12);
+        assert_eq!(attributes[1].offset, 28);
+        assert_eq!(attributes[2].offset, 44);
+        assert_eq!(attributes[3].offset, 60);
     }
 }

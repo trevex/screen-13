@@ -96,6 +96,7 @@ pub fn derive_vertex(ast: syn::DeriveInput) -> Result<TokenStream> {
                     attributes.insert(
                         #name.to_string(),
                         DerivedVertexAttribute {
+                            offset_inc: std::mem::size_of::<#field_ty>() as u32 / num_locations,
                             offset,
                             format,
                             num_locations,
